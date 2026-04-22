@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36">
   <diagram name="페이지-1" id="nwmrES0iW7m1xIaGtdVI">
-    <mxGraphModel dx="1885" dy="1076" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0">
+    <mxGraphModel dx="1533" dy="958" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -79,12 +79,6 @@
         <mxCell id="n-qjoYZXMDps5GFvimGD-31" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0)); font-size: 18px;&quot;&gt;Kaggle&amp;nbsp;&lt;/font&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0)); font-size: 18px; background-color: transparent;&quot;&gt;CSV&lt;/span&gt;&lt;/b&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0)); background-color: transparent;&quot;&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;(배송 데이터 파일)&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0)); background-color: transparent;&quot;&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0)); background-color: transparent;&quot;&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="30" width="140" x="40" y="600" as="geometry" />
         </mxCell>
-        <mxCell id="n-qjoYZXMDps5GFvimGD-32" edge="1" parent="1" source="n-qjoYZXMDps5GFvimGD-46" style="endArrow=classic;html=1;rounded=0;" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="420" y="580" as="sourcePoint" />
-            <mxPoint x="470" y="530" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="n-qjoYZXMDps5GFvimGD-33" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="n-qjoYZXMDps5GFvimGD-20" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="180" y="600" as="sourcePoint" />
@@ -145,14 +139,8 @@
         <mxCell id="n-qjoYZXMDps5GFvimGD-45" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;Kafka Producer&lt;/font&gt;&lt;/h1&gt;&lt;p&gt;&lt;font style=&quot;font-size: 14px; color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;CSV 한줄씩 읽기&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font style=&quot;font-size: 14px; color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;실시간 이벤트 전송&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font color=&quot;#000000&quot; style=&quot;font-size: 14px;&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/p&gt;" vertex="1">
           <mxGeometry height="150" width="140" x="200" y="520" as="geometry" />
         </mxCell>
-        <mxCell id="n-qjoYZXMDps5GFvimGD-47" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" target="n-qjoYZXMDps5GFvimGD-46" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="420" y="580" as="sourcePoint" />
-            <mxPoint x="470" y="530" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="n-qjoYZXMDps5GFvimGD-46" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;font style=&quot;&quot;&gt;Kafka Topic&lt;/font&gt;&lt;span style=&quot;background-color: transparent; font-size: 12px; font-weight: normal;&quot;&gt;&amp;nbsp;&lt;/span&gt;&lt;/font&gt;&lt;/h1&gt;&lt;p&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;delivery-events&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;메세지 대기&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font color=&quot;#000000&quot; style=&quot;font-size: 14px;&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/p&gt;" vertex="1">
-          <mxGeometry height="120" width="140" x="360" y="530" as="geometry" />
+          <mxGeometry height="120" width="140" x="360" y="520" as="geometry" />
         </mxCell>
         <mxCell id="n-qjoYZXMDps5GFvimGD-48" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;font style=&quot;&quot;&gt;Spark Streaming&lt;/font&gt;&lt;span style=&quot;background-color: transparent; font-size: 12px; font-weight: normal;&quot;&gt;&amp;nbsp;&lt;/span&gt;&lt;/font&gt;&lt;/h1&gt;&lt;p&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;실시간 소비&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;잘못된 데이터 제거&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;형식 변환&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p&gt;&lt;font color=&quot;#000000&quot; style=&quot;font-size: 14px;&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/p&gt;" vertex="1">
           <mxGeometry height="150" width="140" x="520" y="520" as="geometry" />
@@ -196,12 +184,6 @@
         <mxCell id="m0JQEtx24Omp3aiSDlu5-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#FFFFFF);arcSize=14;" value="" vertex="1">
           <mxGeometry height="180" width="260" x="1310" y="140" as="geometry" />
         </mxCell>
-        <mxCell id="m0JQEtx24Omp3aiSDlu5-13" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="930" y="520" as="sourcePoint" />
-            <mxPoint x="980" y="470" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="m0JQEtx24Omp3aiSDlu5-14" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;endFill=1;strokeColor=light-dark(#000000,#000000);strokeWidth=4;" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="1340" y="188.75" as="sourcePoint" />
@@ -214,17 +196,11 @@
             <mxPoint x="1410" y="264.37" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="m0JQEtx24Omp3aiSDlu5-16" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Text" vertex="1">
-          <mxGeometry height="30" width="60" x="930" y="480" as="geometry" />
-        </mxCell>
         <mxCell id="m0JQEtx24Omp3aiSDlu5-17" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 16px;&quot;&gt;실시간 흐름&lt;/span&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="100" x="1420" y="177" as="geometry" />
         </mxCell>
         <mxCell id="m0JQEtx24Omp3aiSDlu5-18" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;span style=&quot;font-size: 16px;&quot;&gt;배치/스케줄&lt;/span&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="100" x="1420" y="250" as="geometry" />
-        </mxCell>
-        <mxCell id="m0JQEtx24Omp3aiSDlu5-19" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Text" vertex="1">
-          <mxGeometry height="30" width="60" x="810" y="280" as="geometry" />
         </mxCell>
         <mxCell id="m0JQEtx24Omp3aiSDlu5-20" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;배송 데이터 파이프라인&lt;/font&gt;&lt;/b&gt;" vertex="1">
           <mxGeometry height="30" width="270" x="50" y="50" as="geometry" />
