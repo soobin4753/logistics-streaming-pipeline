@@ -13,7 +13,7 @@ EVENT_FLOW = ["created", "assigned", "pickup", "in_transit", "delivered"]
 order_state = {}
 order_routes = {}
 
-TARGET_ACTIVE = 10  # 🔥 핵심: 항상 유지할 주문 수
+TARGET_ACTIVE = 10 
 
 
 def fake_location(lat, lon, scale=0.05):
