@@ -5,30 +5,44 @@ services:
     ports:
       - "2181:2181"
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: 2181 # Kafka가 Zookeeper에 연결하기 위한 포트
+      ZOOKEEPER_TICK_TIME: 2000 # Zookeeper 내부 동작 주기
+      # 역할:
+      # Kafka 브로커 상태 관리 (관리자 역할)
+      # 토픽 정보 / 브로커 상태 / 리더 선출 담당
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     depends_on:
-      - zookeeper
+      - zookeeper # Zookeeper 먼저 실행되어야 Kafka 실행 가능
     ports:
-      - "9094:9094"
+      - "9094:9094"  # 외부(Python Producer)에서 접근할 포트
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_BROKER_ID: 1 # Kafka 브로커 고유 ID (단일 브로커 환경)
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # Kafka가 Zookeeper에 연결하는 주소
 
-      # 🔥 핵심 (내부/외부 분리)
+      # Kafka가 “받는 입구” 2개 생성
+      # 9092 = 내부용 (Spark, 컨테이너끼리 통신)
+      # 9094 = 외부용 (내 PC Python Producer)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
+      # 클라이언트에게 알려주는 실제 접속 주소
+      # 내부 컨테이너 → kafka:9092
+      # 외부 로컬 PC → localhost:9094
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      # 각 listener의 보안 방식 정의
+      # → 현재는 개발용이라 암호화 없음 (PLAINTEXT)
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      # 브로커 내부 통신은 9092로 고정
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       # 기본 설정
+      # 단일 브로커라 복제 없이 1개만 사용
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # 트랜잭션 로그 복제도 1개
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # 최소 살아있어야 하는 브로커 수
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
-      # 자동 생성 (편의)
+      # Producer가 topic 없으면 자동 생성
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
