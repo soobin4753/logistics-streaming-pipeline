@@ -11,14 +11,14 @@ df = pd.read_csv("data/dynamic_supply_chain_logistics_dataset.csv")
 
 # Kafka Producer 생성
 producer = KafkaProducer(
-    bootstrap_servers='localhost:9094', # Kafka 브로커 주소 (외부 접근용 포트)
-    value_serializer=lambda v: json.dumps(v).encode('utf-8') # Python dict → JSON → byte 변환 (Kafka 전송 형식)
+    bootstrap_servers='localhost:9094',
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
-TOPIC = "logistics-events" # 이벤트가 전송될 Kafka topic (데이터 스트림 채널)
+TOPIC = "logistics-events" # 이벤트가 전송될 Kafka topic 
 
 try:
-    for _, row in df.iterrows(): # CSV의 각 row를 순차적으로 처리 (batch → stream 변환 역할)
+    for _, row in df.iterrows(): # CSV의 각 row를 순차적으로 처리 (batch -> stream 변환 역할)
 
         # 각 row를 기반으로 "배송 이벤트" 생성
         event = create_event(row)
@@ -30,11 +30,8 @@ try:
         # Kafka로 이벤트 전송
         producer.send(
             TOPIC,
-            key=event["order_id"].encode("utf-8"), 
-            # 동일 order_id 기준으로 같은 partition에 묶이도록 설정
-            # → 순서 보장 (ordering guarantee)
-            value=event
-            # 실제 이벤트 데이터 (JSON)
+            key=event["order_id"].encode("utf-8"), # 동일 order_id 기준으로 같은 partition에 묶이도록 설정 -> 순서 보장
+            value=event # 실제 이벤트 데이터 (JSON)
         )
 
         print(f"[{event['event_type']}] order={event['order_id']}")

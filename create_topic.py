@@ -1,7 +1,6 @@
 from kafka.admin import KafkaAdminClient, NewTopic
 
 # Kafka 관리자 클라이언트 생성
-# → Kafka 브로커에 "관리 작업"을 수행하기 위한 클라이언트
 admin = KafkaAdminClient(
     bootstrap_servers="localhost:9094"
 )

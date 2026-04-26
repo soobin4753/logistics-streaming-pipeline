@@ -27,11 +27,11 @@ services:
       # 9094 = 외부용 (내 PC Python Producer)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
       # 클라이언트에게 알려주는 실제 접속 주소
-      # 내부 컨테이너 → kafka:9092
-      # 외부 로컬 PC → localhost:9094
+      # 내부 컨테이너 -> kafka:9092
+      # 외부 로컬 PC -> localhost:9094
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
       # 각 listener의 보안 방식 정의
-      # → 현재는 개발용이라 암호화 없음 (PLAINTEXT)
+      # -> 현재는 개발용이라 암호화 없음 (PLAINTEXT)
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       # 브로커 내부 통신은 9092로 고정
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT

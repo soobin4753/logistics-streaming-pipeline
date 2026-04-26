@@ -16,7 +16,7 @@ print("Consumer started")
 try:
     for msg in consumer: # Kafka에서 메시지가 들어올 때마다 반복 실행
         try:
-            event = msg.value # deserialize된 실제 이벤트 데이터
+            event = msg.value # 역직렬화된 실제 이벤트 데이터
 
             event_type = event.get("event_type", "UNKNOWN") # 이벤트 상태 (created ~ delivered)
             order_id = event.get("order_id", "UNKNOWN") # 주문 ID
