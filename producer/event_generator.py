@@ -39,7 +39,19 @@ def assign_order(base_lat, base_lon):
     # 출발지 / 도착지 생성 (배송 경로 시뮬레이션)
     order_routes[order_id] = {
         "origin": fake_location(base_lat, base_lon, 0.01),
-        "destination": fake_location(base_lat, base_lon, 0.05)
+        "destination": fake_location(base_lat, base_lon, 0.05),
+
+        # 기사 정보
+        "driver": {
+            "driver_id": f"DRV_{random.randint(1, 50)}",
+            "driver_score": round(random.uniform(0.5, 1.0), 2),
+            "driver_name": fake.name()  # 선택 (로그용)
+        },
+        # 차량 정보
+        "vehicle": {
+            "vehicle_id": f"VEH_{random.randint(1, 100)}",
+            "vehicle_type": random.choice(["truck", "van", "bike"])
+        }
     }
 
     return order_id
@@ -119,6 +131,9 @@ def create_event(row):
         progress
     )
 
+    driver = route["driver"]
+    vehicle = route["vehicle"]
+
     # 최종 이벤트 생성
     return {
         "event_id": f"{order_id}_{state['step']}_{int(time.time()*1000)}", # 유니크 이벤트 ID
@@ -127,12 +142,18 @@ def create_event(row):
 
         "order_id": order_id,
 
+        "driver_id": driver["driver_id"],
+        "driver_score": driver["driver_score"],
+        "driver_name": driver["driver_name"], 
+        "vehicle_id": vehicle["vehicle_id"],
+        "vehicle_type": vehicle["vehicle_type"], # truck, van, bike
+
         "origin": route["origin"],
         "destination": route["destination"],
         "vehicle_location": vehicle_location, # 현재 배송 위치
 
         "context": {
-            "traffic": row["traffic_congestion_level"],
+            "traffic": row["traffic_congestion_level"], # 교통 혼잡도
             "weather": row["weather_condition_severity"],
             "eta_variation": row["eta_variation_hours"]
         }

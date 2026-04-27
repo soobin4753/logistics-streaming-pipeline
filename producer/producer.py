@@ -34,7 +34,15 @@ try:
             value=event # 실제 이벤트 데이터 (JSON)
         )
 
-        print(f"[{event['event_type']}] order={event['order_id']}")
+        #print(f"[{event['event_type']}] order={event['order_id']}")
+        print(
+            f"[{event['event_type']}] "
+            f"order={event['order_id']} "
+            f"driver={event['driver_id']} "
+            f"driverName={event['driver_name']} "
+            f"vehicle={event['vehicle_type']} "
+            f"traffic={event['context']['traffic']}"
+        )
 
         # 실제 스트리밍처럼 보이게 랜덤 딜레이 추가
         time.sleep(random.uniform(0.2, 0.7))
