@@ -4,127 +4,180 @@ from faker import Faker
 from datetime import timedelta
 import pandas as pd
 
-# 초기 설정
-fake = Faker('ko_KR') # 주문 ID 생성용 더미 데이터 생성기
-# 재현 가능한 데이터 생성 (결과 고정)
-random.seed(42)
-fake.seed_instance(42)
+fake = Faker('ko_KR')
 
-# 하나의 주문이 거치는 상태 흐름
+# 재현성 유지
+fake.seed_instance(42)
+random.seed(42)
+
 EVENT_FLOW = ["created", "assigned", "pickup", "in_transit", "delivered"]
 
-order_state = {} # 주문별 현재 진행 상태 저장
-order_routes = {} # 주문별 이동 경로
+order_state = {}
+order_routes = {}
 
-TARGET_ACTIVE = 10 # 동시에 유지할 "활성 주문 수"
+TARGET_ACTIVE = 10
 
-# 위치 생성
+
+
+# 위치 생성 (faker + 약간의 noise)
 def fake_location(lat, lon, scale=0.05):
-    # 실제 GPS 기반 + 랜덤 노이즈 추가
-    # -> 현실감 있는 위치 시뮬레이션
     return {
-        "lat": lat + random.uniform(-scale, scale),
-        "lon": lon + random.uniform(-scale, scale)
+        "lat": lat + fake.pyfloat(min_value=-scale, max_value=scale),
+        "lon": lon + fake.pyfloat(min_value=-scale, max_value=scale)
     }
+
+
+
+# driver 생성 
+def create_driver():
+    experience = fake.random_int(min=1, max=10)  # 경력 (년)
+
+    # 경력 기반 score
+    driver_score = round(0.5 + (experience / 10) * 0.5, 2)
+
+    # 피로도 (낮을수록 좋음)
+    fatigue = round(fake.pyfloat(min_value=0, max_value=1), 2)
+
+    return {
+        "driver_id": f"DRV_{fake.random_int(1, 50)}",
+        "driver_name": fake.name(),
+        "experience_years": experience,
+        "driver_score": driver_score,
+        "fatigue": fatigue
+    }
+
+
+
+# vehicle 생성 (거리 기반)
+def create_vehicle(origin, destination):
+    distance = abs(origin["lat"] - destination["lat"]) + abs(origin["lon"] - destination["lon"])
+
+    if distance < 0.02:
+        vehicle_type = "bike"
+    elif distance < 0.05:
+        vehicle_type = "van"
+    else:
+        vehicle_type = "truck"
+
+    return {
+        "vehicle_id": f"VEH_{fake.random_int(1, 100)}",
+        "vehicle_type": vehicle_type
+    }
+
+
 
 # 주문 생성
 def assign_order(base_lat, base_lon):
-    # 새로운 주문 생성
     order_id = fake.uuid4()
-    # 초기 상태 (created 단계)
-    order_state[order_id] = {
-        "step": 0
-    }
 
-    # 출발지 / 도착지 생성 (배송 경로 시뮬레이션)
+    order_state[order_id] = {"step": 0}
+
+    origin = fake_location(base_lat, base_lon, 0.01)
+    destination = fake_location(base_lat, base_lon, 0.05)
+
+    driver = create_driver()
+    vehicle = create_vehicle(origin, destination)
+
     order_routes[order_id] = {
-        "origin": fake_location(base_lat, base_lon, 0.01),
-        "destination": fake_location(base_lat, base_lon, 0.05),
-
-        # 기사 정보
-        "driver": {
-            "driver_id": f"DRV_{random.randint(1, 50)}",
-            "driver_score": round(random.uniform(0.5, 1.0), 2),
-            "driver_name": fake.name()  # 선택 (로그용)
-        },
-        # 차량 정보
-        "vehicle": {
-            "vehicle_id": f"VEH_{random.randint(1, 100)}",
-            "vehicle_type": random.choice(["truck", "van", "bike"])
-        }
+        "origin": origin,
+        "destination": destination,
+        "driver": driver,
+        "vehicle": vehicle
     }
 
     return order_id
 
-# 현재 살아있는 주문 조회
+
+
+# 활성 주문 조회
 def get_active_orders():
-    # 아직 delivered 안 된 주문만 필터링
     return [
         oid for oid, s in order_state.items()
         if s["step"] < len(EVENT_FLOW)
     ]
 
-# 다음 이벤트 상태 생성
+
+
+# 이벤트 상태 전이
 def get_next_event(order_id):
     state = order_state[order_id]
 
     if state["step"] >= len(EVENT_FLOW):
-        # 이미 완료된 주문
         return None
 
-    # 현재 step 기준 이벤트 결정
     event_type = EVENT_FLOW[state["step"]]
-    # 상태 진행
     state["step"] += 1
+
     return event_type
 
-# 위치 (이동 시뮬레이션)
+
+
+# 위치 이동
 def interpolate_location(origin, destination, progress):
-    # origin → destination 사이 이동 위치 계산
     return {
         "lat": origin["lat"] + (destination["lat"] - origin["lat"]) * progress,
         "lon": origin["lon"] + (destination["lon"] - origin["lon"]) * progress
     }
 
+
+
+# 지연 요인 계산
+def calculate_delay_factor(driver, row):
+    delay = 0
+
+    # 내부 요인
+    if driver["driver_score"] < 0.7:
+        delay += 0.2
+
+    if driver["fatigue"] > 0.7:
+        delay += 0.2
+
+    # 외부 요인
+    if row["traffic_congestion_level"] > 8:
+        delay += 0.3
+
+    if row["weather_condition_severity"] > 0.7:
+        delay += 0.2
+
+    return delay
+
+
+
 # 이벤트 시간 생성
-def generate_event_time(base_time, step):
+def generate_event_time(base_time, step, delay_factor):
     event_time = pd.to_datetime(base_time)
 
-    # 단계별 시간 증가 (5~15분 랜덤)
-    event_time += timedelta(minutes=step * random.randint(5, 15))
+    base_delay = fake.random_int(min=5, max=15)
+    delay_minutes = int(base_delay * (1 + delay_factor))
 
-    # 10% 확률로 지연 발생 (현실성 추가)
-    if random.random() < 0.1:
-        event_time -= timedelta(minutes=random.randint(1, 10))
+    event_time += timedelta(minutes=step * delay_minutes)
 
     return event_time.isoformat()
 
 
+
+# 이벤트 생성 (메인)
 def create_event(row):
-    # CSV의 GPS를 환경 입력으로 사용
     base_lat = row["vehicle_gps_latitude"]
     base_lon = row["vehicle_gps_longitude"]
 
     active_orders = get_active_orders()
 
-    # 주문 유지 로직
     if len(active_orders) < TARGET_ACTIVE:
-        order_id = assign_order(base_lat, base_lon) # 부족하면 신규 주문 생성
+        order_id = assign_order(base_lat, base_lon)
     else:
-        order_id = random.choice(active_orders) # 기존 주문 재사용
+        order_id = fake.random_element(active_orders)
 
     event_type = get_next_event(order_id)
 
     if event_type is None:
-        return None # 이미 완료된 주문 제외
+        return None
 
     route = order_routes[order_id]
     state = order_state[order_id]
 
-    # 진행률 계산 (0~1)
     progress = (state["step"] - 1) / (len(EVENT_FLOW) - 1)
 
-    # 차량 위치 계산
     vehicle_location = interpolate_location(
         route["origin"],
         route["destination"],
@@ -134,27 +187,39 @@ def create_event(row):
     driver = route["driver"]
     vehicle = route["vehicle"]
 
-    # 최종 이벤트 생성
+    # 지연 요인 계산
+    delay_factor = calculate_delay_factor(driver, row)
+
     return {
-        "event_id": f"{order_id}_{state['step']}_{int(time.time()*1000)}", # 유니크 이벤트 ID
-        "event_time": generate_event_time(row["timestamp"], state["step"]), # 상태 + 시간 기반 이벤트 타임
-        "event_type": event_type, # 상태 (created ~ delivered)
+        "event_id": f"{order_id}_{state['step']}_{int(time.time()*1000)}",
+        "event_time": generate_event_time(row["timestamp"], state["step"], delay_factor),
+        "event_type": event_type,
 
         "order_id": order_id,
 
+        # driver
         "driver_id": driver["driver_id"],
+        "driver_name": driver["driver_name"],
+        "experience_years": driver["experience_years"],
         "driver_score": driver["driver_score"],
-        "driver_name": driver["driver_name"], 
-        "vehicle_id": vehicle["vehicle_id"],
-        "vehicle_type": vehicle["vehicle_type"], # truck, van, bike
+        "fatigue": driver["fatigue"],
 
+        # vehicle
+        "vehicle_id": vehicle["vehicle_id"],
+        "vehicle_type": vehicle["vehicle_type"],
+
+        # 위치
         "origin": route["origin"],
         "destination": route["destination"],
-        "vehicle_location": vehicle_location, # 현재 배송 위치
+        "vehicle_location": vehicle_location,
 
+        # 외부 요인
         "context": {
-            "traffic": row["traffic_congestion_level"], # 교통 혼잡도
+            "traffic": row["traffic_congestion_level"],
             "weather": row["weather_condition_severity"],
             "eta_variation": row["eta_variation_hours"]
-        }
+        },
+
+        # 핵심 분석 변수
+        "delay_risk": round(delay_factor, 2)
     }
