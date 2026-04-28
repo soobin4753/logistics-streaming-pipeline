@@ -1,14 +1,23 @@
+from faker import Faker
 import random
 import psycopg2
-from psycopg2.extras import execute_values
+from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
 import os
-import pandas as pd
+from datetime import datetime, timedelta
 
+
+# ENV
 load_dotenv()
 
+fake = Faker("ko_KR")
+random.seed(42)
+fake.seed_instance(42)
 
-# DB 연결
+
+# DB CONNECT
+print("DB 연결 시도 중...")
+
 conn = psycopg2.connect(
     host=os.getenv("POSTGRES_HOST"),
     dbname=os.getenv("POSTGRES_DB"),
@@ -19,123 +28,114 @@ conn = psycopg2.connect(
 
 cur = conn.cursor()
 
+print("DB 연결 성공")
 
 
-# driver / vehicle 조회
-def load_ids():
-    cur.execute("SELECT driver_id FROM driver")
-    drivers = [row[0] for row in cur.fetchall()]
 
-    cur.execute("SELECT vehicle_id FROM vehicle")
-    vehicles = [row[0] for row in cur.fetchall()]
+# 1. LOAD MASTER DATA
+def load_entities():
+    cur.execute("SELECT driver_id, driver_score FROM driver")
+    drivers = cur.fetchall()
 
-    if not drivers or not vehicles:
-        raise Exception("❌ driver / vehicle 데이터 없음")
+    cur.execute("SELECT vehicle_id, vehicle_type FROM vehicle")
+    vehicles = cur.fetchall()
 
     return drivers, vehicles
 
 
 
-# 날짜 추출 (CSV 기반)
-def load_dates():
-    df = pd.read_csv("data/dynamic_supply_chain_logistics_dataset.csv")
+# 2. CAPACITY LOGIC
+def calculate_capacity(driver_score, vehicle_type):
 
-    dates = sorted(pd.to_datetime(df["timestamp"]).dt.date.unique())
+    base_capacity = int(driver_score * 30)
 
-    if len(dates) == 0:
-        raise Exception("❌ 날짜 추출 실패")
+    if vehicle_type == "truck":
+        base_capacity += 10
+    elif vehicle_type == "van":
+        base_capacity += 5
+    else:
+        base_capacity += 0
 
-    return dates
-
-
-
-# 초기 매칭 (첫날)
-def initial_matching(drivers, vehicles):
-    d = drivers.copy()
-    v = vehicles.copy()
-
-    random.shuffle(d)
-    random.shuffle(v)
-
-    n = min(len(d), len(v))
-
-    return {d[i]: v[i] for i in range(n)}  # dict
+    return max(5, base_capacity)
 
 
 
-# 다음날 매칭 (현실성: 일부만 변경)
-def mutate_matching(prev_map, drivers, vehicles, change_rate=0.2):
-    new_map = prev_map.copy()
-
-    driver_list = list(new_map.keys())
-    change_count = int(len(driver_list) * change_rate)
-
-    # 변경할 driver 선택
-    to_change = random.sample(driver_list, change_count)
-
-    # 현재 사용 중 차량 제외
-    used_vehicles = set(new_map.values())
-    available_vehicles = list(set(vehicles) - used_vehicles)
-
-    random.shuffle(available_vehicles)
-
-    for d in to_change:
-        if available_vehicles:
-            new_map[d] = available_vehicles.pop()
-
-    return new_map
-
-
-
-# assignment 생성
-def generate_assignments():
-    drivers, vehicles = load_ids()
-    dates = load_dates()
+# 3. ASSIGNMENT GENERATOR
+def generate_assignments(drivers, vehicles, date):
 
     assignments = []
 
-    # Day 1
-    current_map = initial_matching(drivers, vehicles)
+    used_vehicles = set()
 
-    for d in dates:
-        # 저장
-        for driver_id, vehicle_id in current_map.items():
-            assignments.append((driver_id, vehicle_id, d))
+    # driver 수 기준 1:1 매칭
+    for driver_id, driver_score in drivers:
 
-        # 다음날 매칭 (80% 유지)
-        current_map = mutate_matching(current_map, drivers, vehicles)
+        vehicle_id, vehicle_type = random.choice(vehicles)
+
+        # vehicle 중복 방지
+        while vehicle_id in used_vehicles:
+            vehicle_id, vehicle_type = random.choice(vehicles)
+
+        used_vehicles.add(vehicle_id)
+
+        # shift 정의
+        shift_start = datetime.strptime(f"{date} 09:00:00", "%Y-%m-%d %H:%M:%S")
+        shift_end = datetime.strptime(f"{date} 18:00:00", "%Y-%m-%d %H:%M:%S")
+
+        # capacity 계산 (핵심)
+        capacity = calculate_capacity(driver_score, vehicle_type)
+
+        assignments.append((
+            driver_id,
+            vehicle_id,
+            date,
+            shift_start,
+            shift_end,
+            "ACTIVE",
+            capacity,
+            0  # current_orders
+        ))
 
     return assignments
 
 
 
-# INSERT
+# 4. DB INSERT
 def insert_assignments(assignments):
+
     query = """
         INSERT INTO driver_vehicle_assignment (
             driver_id,
             vehicle_id,
-            assigned_date
+            assigned_date,
+            shift_start,
+            shift_end,
+            status,
+            max_orders,
+            current_orders
         )
-        VALUES %s
-        ON CONFLICT DO NOTHING
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
 
-    chunk_size = 10000
-
-    for i in range(0, len(assignments), chunk_size):
-        chunk = assignments[i:i + chunk_size]
-        execute_values(cur, query, chunk)
-
-        print(f"{i + len(chunk)} / {len(assignments)} inserted")
+    execute_batch(cur, query, assignments)
 
 
 
-# 실행
+# 5. MAIN
 if __name__ == "__main__":
-    assignments = generate_assignments()
 
-    print(f"{len(assignments)}개 assignment 생성")
+    print("driver / vehicle 로딩 중...")
+    drivers, vehicles = load_entities()
+
+    print(f"drivers: {len(drivers)}, vehicles: {len(vehicles)}")
+
+    today = datetime.now().date().isoformat()
+
+    print("assignment 생성 중...")
+
+    assignments = generate_assignments(drivers, vehicles, today)
+
+    print(f"{len(assignments)}개 assignment 생성 완료")
 
     insert_assignments(assignments)
 
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     cur.close()
     conn.close()
 
-    print("Assignment seeded successfully")
+    print("Assignments seeded successfully")

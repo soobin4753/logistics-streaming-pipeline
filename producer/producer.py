@@ -42,14 +42,9 @@ try:
         
         # 디버깅 로그
         print(
-            f"[{event['event_type']}] "
             f"order={event['order_id']} "
-            f"time={event['event_time']} "
             f"driver={event['driver_id']} "
-            f"score={event['driver_score']} "
-            f"vehicle={event['vehicle_type']} "
-            f"traffic={event['context']['traffic']} "
-            f"delay={event.get('delay_risk', 'N/A')} "
+            f"vehicle={event['vehicle_id']} "
             f"partition={metadata.partition} "
             f"offset={metadata.offset}"
         )

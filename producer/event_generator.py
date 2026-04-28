@@ -1,105 +1,68 @@
 import random
 import time
+import pandas as pd
 from faker import Faker
 from datetime import timedelta
-import pandas as pd
+import psycopg2
+from dotenv import load_dotenv
+import os
+
+
+
+# INIT
+load_dotenv()
 
 fake = Faker('ko_KR')
-
-# 재현성 유지
 fake.seed_instance(42)
 random.seed(42)
 
+
+
+# DB CONNECT
+conn = psycopg2.connect(
+    host=os.getenv("POSTGRES_HOST"),
+    dbname=os.getenv("POSTGRES_DB"),
+    user=os.getenv("POSTGRES_USER"),
+    password=os.getenv("POSTGRES_PASSWORD"),
+    port=os.getenv("POSTGRES_PORT")
+)
+
+cur = conn.cursor()
+
+
+
+# CONSTANTS
 EVENT_FLOW = ["created", "assigned", "pickup", "in_transit", "delivered"]
 
 order_state = {}
-order_routes = {}
+order_assignment = {}
 
 TARGET_ACTIVE = 10
 
 
 
-# 위치 생성 (faker + 약간의 noise)
-def fake_location(lat, lon, scale=0.05):
-    return {
-        "lat": lat + fake.pyfloat(min_value=-scale, max_value=scale),
-        "lon": lon + fake.pyfloat(min_value=-scale, max_value=scale)
-    }
+# LOAD ASSIGNMENTS
+def load_assignments():
+    cur.execute("""
+        SELECT driver_id, vehicle_id
+        FROM driver_vehicle_assignment
+        WHERE status = 'ACTIVE'
+    """)
+    return cur.fetchall()
 
 
 
-# driver 생성 
-def create_driver():
-    experience = fake.random_int(min=1, max=10)  # 경력 (년)
+# GLOBAL CACHE (CRITICAL FIX)
+ASSIGNMENTS_CACHE = load_assignments()
 
-    # 경력 기반 score
-    driver_score = round(0.5 + (experience / 10) * 0.5, 2)
-
-    # 피로도 (낮을수록 좋음)
-    fatigue = round(fake.pyfloat(min_value=0, max_value=1), 2)
-
-    return {
-        "driver_id": f"DRV_{fake.random_int(1, 50)}",
-        "driver_name": fake.name(),
-        "experience_years": experience,
-        "driver_score": driver_score,
-        "fatigue": fatigue
-    }
+if not ASSIGNMENTS_CACHE:
+    raise Exception("Assignment table is EMPTY. Run assignment seed first.")
 
 
 
-# vehicle 생성 (거리 기반)
-def create_vehicle(origin, destination):
-    distance = abs(origin["lat"] - destination["lat"]) + abs(origin["lon"] - destination["lon"])
-
-    if distance < 0.02:
-        vehicle_type = "bike"
-    elif distance < 0.05:
-        vehicle_type = "van"
-    else:
-        vehicle_type = "truck"
-
-    return {
-        "vehicle_id": f"VEH_{fake.random_int(1, 100)}",
-        "vehicle_type": vehicle_type
-    }
-
-
-
-# 주문 생성
-def assign_order(base_lat, base_lon):
-    order_id = fake.uuid4()
-
-    order_state[order_id] = {"step": 0}
-
-    origin = fake_location(base_lat, base_lon, 0.01)
-    destination = fake_location(base_lat, base_lon, 0.05)
-
-    driver = create_driver()
-    vehicle = create_vehicle(origin, destination)
-
-    order_routes[order_id] = {
-        "origin": origin,
-        "destination": destination,
-        "driver": driver,
-        "vehicle": vehicle
-    }
-
-    return order_id
-
-
-
-# 활성 주문 조회
-def get_active_orders():
-    return [
-        oid for oid, s in order_state.items()
-        if s["step"] < len(EVENT_FLOW)
-    ]
-
-
-
-# 이벤트 상태 전이
+# STATE MACHINE
 def get_next_event(order_id):
+
     state = order_state[order_id]
 
     if state["step"] >= len(EVENT_FLOW):
@@ -112,27 +75,39 @@ def get_next_event(order_id):
 
 
 
-# 위치 이동
-def interpolate_location(origin, destination, progress):
+# ORDER CREATION
+def create_order():
+
+    order_id = fake.uuid4()
+
+    assignment = random.choice(ASSIGNMENTS_CACHE)
+
+    order_assignment[order_id] = {
+        "driver_id": assignment[0],
+        "vehicle_id": assignment[1]
+    }
+
+    order_state[order_id] = {"step": 0}
+
+    return order_id
+
+
+
+# LOCATION SIMULATION
+def interpolate_location(base_lat, base_lon, progress):
+
     return {
-        "lat": origin["lat"] + (destination["lat"] - origin["lat"]) * progress,
-        "lon": origin["lon"] + (destination["lon"] - origin["lon"]) * progress
+        "lat": base_lat + (0.05 * progress),
+        "lon": base_lon + (0.05 * progress)
     }
 
 
 
-# 지연 요인 계산
-def calculate_delay_factor(driver, row):
+# DELAY MODEL
+def calculate_delay_factor(row):
+
     delay = 0
 
-    # 내부 요인
-    if driver["driver_score"] < 0.7:
-        delay += 0.2
-
-    if driver["fatigue"] > 0.7:
-        delay += 0.2
-
-    # 외부 요인
     if row["traffic_congestion_level"] > 8:
         delay += 0.3
 
@@ -142,84 +117,92 @@ def calculate_delay_factor(driver, row):
     return delay
 
 
+# DB UPDATE (STATE CHANGE)
+def update_assignment(driver_id):
 
-# 이벤트 시간 생성
-def generate_event_time(base_time, step, delay_factor):
-    event_time = pd.to_datetime(base_time)
+    cur.execute("""
+        UPDATE driver_vehicle_assignment
+        SET current_orders = current_orders + 1
+        WHERE driver_id = %s
+    """, (driver_id,))
 
-    base_delay = fake.random_int(min=5, max=15)
-    delay_minutes = int(base_delay * (1 + delay_factor))
-
-    event_time += timedelta(minutes=step * delay_minutes)
-
-    return event_time.isoformat()
-
+    conn.commit()
 
 
-# 이벤트 생성 (메인)
+
+# MAIN EVENT GENERATOR
 def create_event(row):
+
     base_lat = row["vehicle_gps_latitude"]
     base_lon = row["vehicle_gps_longitude"]
 
-    active_orders = get_active_orders()
+    active_orders = list(order_state.keys())
 
+    # order 생성 or reuse
     if len(active_orders) < TARGET_ACTIVE:
-        order_id = assign_order(base_lat, base_lon)
+        order_id = create_order()
     else:
-        order_id = fake.random_element(active_orders)
+        order_id = random.choice(active_orders)
+
+    state = order_state[order_id]
 
     event_type = get_next_event(order_id)
 
     if event_type is None:
         return None
 
-    route = order_routes[order_id]
-    state = order_state[order_id]
+    progress = state["step"] / len(EVENT_FLOW)
 
-    progress = (state["step"] - 1) / (len(EVENT_FLOW) - 1)
+    assignment = order_assignment[order_id]
 
     vehicle_location = interpolate_location(
-        route["origin"],
-        route["destination"],
+        base_lat,
+        base_lon,
         progress
     )
 
-    driver = route["driver"]
-    vehicle = route["vehicle"]
+    delay_factor = calculate_delay_factor(row)
 
-    # 지연 요인 계산
-    delay_factor = calculate_delay_factor(driver, row)
+    event_time = pd.to_datetime(row["timestamp"]) + timedelta(
+        minutes=state["step"] * random.randint(5, 15)
+    )
 
-    return {
+
+    # EVENT BUILD
+    event = {
         "event_id": f"{order_id}_{state['step']}_{int(time.time()*1000)}",
-        "event_time": generate_event_time(row["timestamp"], state["step"], delay_factor),
-        "event_type": event_type,
+        "event_time": event_time.isoformat(),
 
+        "event_type": event_type,
         "order_id": order_id,
 
-        # driver
-        "driver_id": driver["driver_id"],
-        "driver_name": driver["driver_name"],
-        "experience_years": driver["experience_years"],
-        "driver_score": driver["driver_score"],
-        "fatigue": driver["fatigue"],
+        # resource binding (핵심)
+        "driver_id": assignment["driver_id"],
+        "vehicle_id": assignment["vehicle_id"],
 
-        # vehicle
-        "vehicle_id": vehicle["vehicle_id"],
-        "vehicle_type": vehicle["vehicle_type"],
-
-        # 위치
-        "origin": route["origin"],
-        "destination": route["destination"],
+        # location
         "vehicle_location": vehicle_location,
 
-        # 외부 요인
+        # context
         "context": {
             "traffic": row["traffic_congestion_level"],
             "weather": row["weather_condition_severity"],
             "eta_variation": row["eta_variation_hours"]
         },
 
-        # 핵심 분석 변수
+        # risk
         "delay_risk": round(delay_factor, 2)
     }
+
+    
+    # STATE UPDATE
+    update_assignment(assignment["driver_id"])
+
+    return event
+
+
+
+# CLEANUP
+def close_connection():
+    cur.close()
+    conn.close()
